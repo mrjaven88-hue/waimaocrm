@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "54329:5432"
+    environment:
+      POSTGRES_DB: ftcrm
+      POSTGRES_USER: ftcrm
+      POSTGRES_PASSWORD: ftcrm_local_only
+    volumes:
+      - ftcrm_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ftcrm -d ftcrm"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  ftcrm_pg:

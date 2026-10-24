@@ -1,0 +1,20 @@
+spring:
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:54329/ftcrm}
+    username: ${DATABASE_USER:ftcrm}
+    password: ${DATABASE_PASSWORD:ftcrm_local_only}
+    driver-class-name: org.postgresql.Driver
+
+ftcrm:
+  openapi-public: false
+  vault:
+    key: ${CONTACT_VAULT_KEY:}
+    hash-key: ${CONTACT_VAULT_HASH_KEY:}
+  jwt:
+    secret: ${JWT_SECRET:}
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

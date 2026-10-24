@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <!-- 控制台再兜一层：邮箱和连续 8 位以上数字不落日志。业务代码本身也不记录明文。 -->
+  <property name="CONTACT_REDACT"
+            value="%replace(%replace(%msg){'[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}', '[redacted-email]'}){'[0-9]{8,}', '[redacted-digits]'}"/>
+  <property name="CONTACT_REDACT_EX"
+            value="%replace(%replace(%ex){'[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}', '[redacted-email]'}){'[0-9]{8,}', '[redacted-digits]'}"/>
+  <property name="CONSOLE_LOG_PATTERN"
+            value="%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %5p [%15.15t] %-36.36logger{36} : ${CONTACT_REDACT}%n${CONTACT_REDACT_EX}"/>
+  <property name="FILE_LOG_PATTERN" value="${CONSOLE_LOG_PATTERN}"/>
+  <include resource="org/springframework/boot/logging/logback/base.xml"/>
+</configuration>

@@ -1,0 +1,63 @@
+spring:
+  profiles:
+    default: dev
+  application:
+    name: ftcrm
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.jdbc.time_zone: UTC
+      hibernate.type.preferred_instant_jdbc_type: TIMESTAMP
+  flyway:
+    enabled: true
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+
+server:
+  port: ${SERVER_PORT:18443}
+  error:
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+  servlet:
+    encoding:
+      charset: UTF-8
+      force: true
+  tomcat:
+    max-http-form-post-size: 1MB
+    max-swallow-size: 1MB
+
+ftcrm:
+  openapi-public: false
+  unmask-ttl-minutes: 15
+  # M2 密钥默认为空，骨架不拿它们去发信。真实调用前才填写，见 .env.example。
+  messaging:
+    whatsapp-per-hour: ${WHATSAPP_SENDS_PER_HOUR:30}
+    email-per-hour: ${EMAIL_SENDS_PER_HOUR:60}
+    whatsapp-provider: ${WHATSAPP_PROVIDER:unconfigured}
+    email-provider: ${EMAIL_PROVIDER:unconfigured}
+    whatsapp-api-base: ${WHATSAPP_API_BASE:}
+    whatsapp-api-key: ${WHATSAPP_API_KEY:}
+    wati-api-base: ${WATI_API_BASE:}
+    wati-api-token: ${WATI_API_TOKEN:}
+    resend-api-key: ${RESEND_API_KEY:}
+    gmail-client-id: ${GMAIL_CLIENT_ID:}
+    gmail-client-secret: ${GMAIL_CLIENT_SECRET:}
+    gmail-refresh-token: ${GMAIL_REFRESH_TOKEN:}
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+logging:
+  level:
+    root: INFO
+    org.hibernate.SQL: WARN
+    org.hibernate.orm.jdbc.bind: OFF
+    org.hibernate.type.descriptor.sql.BasicBinder: OFF

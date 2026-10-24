@@ -1,0 +1,22 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:ftcrmtest;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+
+ftcrm:
+  openapi-public: false
+  unmask-ttl-minutes: 15
+  vault:
+    key: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+    hash-key: ZGV2LWhhc2gta2V5LW5vdC1mb3ItcHJvZHVjdGlvbiE=
+  jwt:
+    secret: test-only-jwt-secret-change-me-32b
+    ttl-hours: 12
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
