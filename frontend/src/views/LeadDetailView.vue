@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { api } from '../api/http'
@@ -7,7 +7,13 @@ import { useAuthStore } from '../stores/auth'
 import ContactShield from '../components/ContactShield.vue'
 import Watermark from '../components/Watermark.vue'
 import { watermarkText } from '../security/watermarkText'
-import { formatTime, sanitizeLead, type Lead } from '../types'
+import {
+  blankStageEvidence,
+  formatTime,
+  sanitizeLead,
+  type Lead,
+  type StageEvidenceForm,
+} from '../types'
 
 const auth = useAuthStore()
 const route = useRoute()
@@ -15,14 +21,18 @@ const lead = ref<Lead | null>(null)
 const loading = ref(true)
 const error = ref('')
 const dialog = ref(false)
+const promoteOpen = ref(false)
 const reason = ref('')
 const working = ref(false)
+const promoting = ref(false)
 const remain = ref('')
+const evidence = reactive<StageEvidenceForm>(blankStageEvidence())
 let timer = 0
 let refreshedFor = ''
 
 const id = computed(() => String(route.params.id ?? ''))
 const stamp = computed(() => watermarkText(auth.user))
+const canPromote = computed(() => lead.value != null && lead.value.stage !== 'LOST' && lead.value.stage !== 'CLOSED_WON')
 
 async function load() {
   loading.value = true
@@ -118,6 +128,77 @@ async function endUnmask() {
   }
 }
 
+function resetEvidence() {
+  Object.assign(evidence, blankStageEvidence())
+}
+
+function openPromote() {
+  resetEvidence()
+  promoteOpen.value = true
+}
+
+function evidencePayload(): Record<string, unknown> {
+  const payload: Record<string, unknown> = {}
+  const strings: (keyof StageEvidenceForm)[] = [
+    'notes',
+    'product',
+    'quantity',
+    'destinationPort',
+    'quotation',
+    'customerReply',
+    'orderOrContractNumber',
+    'shippingDocumentNumber',
+    'receiptOrArrivalNote',
+    'budget',
+    'deliveryDate',
+  ]
+  for (const key of strings) {
+    const value = String(evidence[key] ?? '').trim()
+    if (value) payload[key] = value
+  }
+  if (evidence.explicitReject) payload.explicitReject = true
+  if (evidence.daysSinceValidInteraction != null && evidence.daysSinceValidInteraction !== ('' as never)) {
+    payload.daysSinceValidInteraction = Number(evidence.daysSinceValidInteraction)
+  }
+  if (evidence.daysSinceLastDeal != null && evidence.daysSinceLastDeal !== ('' as never)) {
+    payload.daysSinceLastDeal = Number(evidence.daysSinceLastDeal)
+  }
+  if (evidence.consecutiveUnanswered != null && evidence.consecutiveUnanswered !== ('' as never)) {
+    payload.consecutiveUnanswered = Number(evidence.consecutiveUnanswered)
+  }
+  return payload
+}
+
+async function submitPromote() {
+  const payload = evidencePayload()
+  if (Object.keys(payload).length === 0) {
+    ElMessage.warning('请至少填写一项阶段证据（产品/数量/港口、客户回复、拒绝等）')
+    return
+  }
+  promoting.value = true
+  try {
+    const row = await api<Lead>(`/api/leads/${id.value}/promote`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+    const result = sanitizeLead(row, auth.user?.role, { allowRevealed: true })
+    if (result.leaked) ElMessage.error('响应含明文联系方式，已丢弃')
+    lead.value = result.lead
+    promoteOpen.value = false
+    resetEvidence()
+    const grade = result.lead.gradeLabel || result.lead.grade
+    ElMessage.success(
+      grade
+        ? `已评估：${result.lead.stageLabel}${grade ? ` · ${grade}` : ''}`
+        : `阶段：${result.lead.stageLabel}`,
+    )
+  } catch (cause) {
+    ElMessage.error(cause instanceof Error ? cause.message : '晋级评估失败')
+  } finally {
+    promoting.value = false
+  }
+}
+
 onMounted(() => {
   timer = window.setInterval(tick, 1000)
 })
@@ -131,6 +212,10 @@ watch(id, () => {
   refreshedFor = ''
   void load()
 }, { immediate: true })
+
+watch(promoteOpen, (open) => {
+  if (!open) resetEvidence()
+})
 </script>
 
 <template>
@@ -146,10 +231,14 @@ watch(id, () => {
         <h1>{{ lead.companyName }}</h1>
         <div class="meta">
           <span class="pill">{{ lead.stageLabel }}</span>
+          <span v-if="lead.gradeLabel || lead.grade" class="pill">{{ lead.gradeLabel || lead.grade }}</span>
           <span>{{ lead.country }}</span>
           <span>联系人 {{ lead.contactName }}</span>
           <span>负责人 {{ lead.ownerName }}</span>
         </div>
+      </div>
+      <div class="actions">
+        <el-button v-if="canPromote" type="primary" @click="openPromote">阶段评估</el-button>
       </div>
     </header>
     <div class="detail-grid">
@@ -179,6 +268,17 @@ watch(id, () => {
         <p>{{ lead.productInterest || '暂无意向产品' }}</p>
         <p class="muted">来源 {{ lead.source || '—' }} · 更新于 {{ formatTime(lead.updatedAt) }}</p>
         <p>{{ lead.notes || '暂无备注' }}</p>
+        <div v-if="lead.wakePlan" class="unmask-box">
+          <h3>唤醒计划</h3>
+          <p class="muted">
+            {{ lead.wakePlan.sendEnabled ? '已启用外发' : '仅计划，不外发（sendEnabled=false）' }}
+          </p>
+          <div class="stack">
+            <div v-for="(step, index) in lead.wakePlan.steps" :key="index" class="muted">
+              D+{{ step.dayOffset }} · {{ step.templateKey }}
+            </div>
+          </div>
+        </div>
         <div v-if="auth.isManager" class="unmask-box">
           <h3>经理揭盲</h3>
           <p class="muted">需要原因。默认 15 分钟，写入审计，不能续期。</p>
@@ -193,6 +293,77 @@ watch(id, () => {
       <template #footer>
         <el-button @click="dialog = false">取消</el-button>
         <el-button type="primary" :loading="working" @click="startUnmask">开始 15 分钟</el-button>
+      </template>
+    </el-dialog>
+    <el-dialog v-model="promoteOpen" title="阶段评估" width="560px">
+      <p class="muted">
+        只提交证据，不选手动目标阶段。服务端按冻结规则判定流失/晋级（一次至多一阶）。不要写入电话、邮箱或 WhatsApp。
+      </p>
+      <div class="form-grid">
+        <label>
+          <span>产品</span>
+          <el-input v-model="evidence.product" maxlength="200" autocomplete="off" spellcheck="false" />
+        </label>
+        <label>
+          <span>数量</span>
+          <el-input v-model="evidence.quantity" maxlength="80" autocomplete="off" spellcheck="false" />
+        </label>
+        <label>
+          <span>目的港</span>
+          <el-input v-model="evidence.destinationPort" maxlength="120" autocomplete="off" spellcheck="false" />
+        </label>
+        <label>
+          <span>报价摘要</span>
+          <el-input v-model="evidence.quotation" maxlength="200" autocomplete="off" spellcheck="false" />
+        </label>
+        <label>
+          <span>客户回复</span>
+          <el-input v-model="evidence.customerReply" type="textarea" :rows="2" maxlength="2000" spellcheck="false" />
+        </label>
+        <label>
+          <span>备注证据</span>
+          <el-input v-model="evidence.notes" type="textarea" :rows="2" maxlength="2000" spellcheck="false" />
+        </label>
+        <label>
+          <span>预算</span>
+          <el-input v-model="evidence.budget" maxlength="200" autocomplete="off" spellcheck="false" />
+        </label>
+        <label>
+          <span>交期</span>
+          <el-input v-model="evidence.deliveryDate" maxlength="120" placeholder="YYYY-MM-DD" autocomplete="off" />
+        </label>
+        <label>
+          <span>距有效互动（天）</span>
+          <el-input-number v-model="evidence.daysSinceValidInteraction" :min="0" :controls="false" />
+        </label>
+        <label>
+          <span>连续未回次数</span>
+          <el-input-number v-model="evidence.consecutiveUnanswered" :min="0" :controls="false" />
+        </label>
+        <label>
+          <span>合同/订单号</span>
+          <el-input v-model="evidence.orderOrContractNumber" maxlength="120" autocomplete="off" />
+        </label>
+        <label>
+          <span>运单号</span>
+          <el-input v-model="evidence.shippingDocumentNumber" maxlength="120" autocomplete="off" />
+        </label>
+        <label>
+          <span>签收/到货说明</span>
+          <el-input v-model="evidence.receiptOrArrivalNote" maxlength="500" autocomplete="off" />
+        </label>
+        <label>
+          <span>距上次成交（天）</span>
+          <el-input-number v-model="evidence.daysSinceLastDeal" :min="0" :controls="false" />
+        </label>
+        <label class="stack">
+          <span>客户明确拒绝</span>
+          <el-switch v-model="evidence.explicitReject" />
+        </label>
+      </div>
+      <template #footer>
+        <el-button @click="promoteOpen = false">取消</el-button>
+        <el-button type="primary" :loading="promoting" @click="submitPromote">提交评估</el-button>
       </template>
     </el-dialog>
   </template>

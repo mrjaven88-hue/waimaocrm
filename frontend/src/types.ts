@@ -24,6 +24,17 @@ export interface RevealedContact {
   whatsapp?: string
 }
 
+export interface WakeStep {
+  dayOffset: number
+  templateKey: string
+}
+
+export interface WakePlan {
+  leadId: number
+  steps: WakeStep[]
+  sendEnabled: boolean
+}
+
 export interface Lead {
   id: number
   companyName: string
@@ -31,6 +42,8 @@ export interface Lead {
   contactName: string
   stage: string
   stageLabel: string
+  grade?: string
+  gradeLabel?: string
   productInterest?: string
   source?: string
   notes?: string
@@ -41,6 +54,45 @@ export interface Lead {
   contact?: MaskedContact
   unmask?: UnmaskState
   revealed?: RevealedContact
+  wakePlan?: WakePlan
+}
+
+export interface StageEvidenceForm {
+  notes: string
+  product: string
+  quantity: string
+  destinationPort: string
+  quotation: string
+  customerReply: string
+  orderOrContractNumber: string
+  shippingDocumentNumber: string
+  receiptOrArrivalNote: string
+  explicitReject: boolean
+  daysSinceValidInteraction: number | null
+  daysSinceLastDeal: number | null
+  budget: string
+  deliveryDate: string
+  consecutiveUnanswered: number | null
+}
+
+export function blankStageEvidence(): StageEvidenceForm {
+  return {
+    notes: '',
+    product: '',
+    quantity: '',
+    destinationPort: '',
+    quotation: '',
+    customerReply: '',
+    orderOrContractNumber: '',
+    shippingDocumentNumber: '',
+    receiptOrArrivalNote: '',
+    explicitReject: false,
+    daysSinceValidInteraction: null,
+    daysSinceLastDeal: null,
+    budget: '',
+    deliveryDate: '',
+    consecutiveUnanswered: null,
+  }
 }
 
 export interface ImportResult {
@@ -113,8 +165,20 @@ export function sanitizeLead(
   const keepRevealed = options?.allowRevealed === true && role === 'MANAGER' && lead.unmask?.active === true && hasRevealed
   const next: Lead = {
     ...lead,
+    grade: lead.grade,
+    gradeLabel: lead.gradeLabel,
     contact: scrubMasked(lead.contact),
     unmask: lead.unmask ? { ...lead.unmask } : undefined,
+    wakePlan: lead.wakePlan
+      ? {
+          leadId: lead.wakePlan.leadId,
+          sendEnabled: lead.wakePlan.sendEnabled,
+          steps: (lead.wakePlan.steps ?? []).map((step) => ({
+            dayOffset: step.dayOffset,
+            templateKey: step.templateKey,
+          })),
+        }
+      : undefined,
   }
   delete (next as Lead & { phone?: unknown }).phone
   delete (next as Lead & { email?: unknown }).email
