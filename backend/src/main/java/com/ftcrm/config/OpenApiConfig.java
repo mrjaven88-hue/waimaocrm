@@ -17,7 +17,7 @@ public class OpenApiConfig {
                 .info(new Info()
                         .title("澄远外贸 CRM")
                         .version("0.1.0")
-                        .description("阶段①认证与角色，阶段③联系人保险库。M2 消息接口只收客户编号并返回 501，不返回联系方式明文。"))
+                        .description("阶段①认证与角色，阶段③联系人保险库。M2 消息接口只收客户编号；unconfigured 返回 501，mock/实发返回 202，不返回联系方式明文。"))
                 .addSecurityItem(new SecurityRequirement().addList("bearer"))
                 .components(new Components().addSecuritySchemes("bearer",
                         new SecurityScheme()

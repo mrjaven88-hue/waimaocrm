@@ -34,7 +34,7 @@ server:
 ftcrm:
   openapi-public: false
   unmask-ttl-minutes: 15
-  # M2 密钥默认为空，骨架不拿它们去发信。真实调用前才填写，见 .env.example。
+  # M2：默认 unconfigured=stub(delivered=false)；mock 走闸但不外呼；实发需密钥，见 .env.example。
   messaging:
     whatsapp-per-hour: ${WHATSAPP_SENDS_PER_HOUR:30}
     email-per-hour: ${EMAIL_SENDS_PER_HOUR:60}
@@ -45,6 +45,11 @@ ftcrm:
     wati-api-base: ${WATI_API_BASE:}
     wati-api-token: ${WATI_API_TOKEN:}
     resend-api-key: ${RESEND_API_KEY:}
+    email-from: ${EMAIL_FROM:}
+    smtp-host: ${SMTP_HOST:}
+    smtp-port: ${SMTP_PORT:587}
+    smtp-username: ${SMTP_USERNAME:}
+    smtp-password: ${SMTP_PASSWORD:}
     gmail-client-id: ${GMAIL_CLIENT_ID:}
     gmail-client-secret: ${GMAIL_CLIENT_SECRET:}
     gmail-refresh-token: ${GMAIL_REFRESH_TOKEN:}

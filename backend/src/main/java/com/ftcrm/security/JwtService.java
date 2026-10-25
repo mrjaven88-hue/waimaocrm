@@ -48,8 +48,10 @@ public class JwtService {
     }
 
     public Claims parse(String token) {
+        // 校验用同一 TimeSource，避免测试可调时钟与墙钟漂移导致误判过期。
         return Jwts.parser()
                 .verifyWith(key)
+                .clock(() -> Date.from(time.now()))
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();

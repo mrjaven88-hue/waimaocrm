@@ -54,8 +54,9 @@ public class MessagingService {
         gate.requireSealed(lead.getId(), MessageChannel.WHATSAPP);
         rateLimiter.acquire(actor.id(), MessageChannel.WHATSAPP);
         ProviderAck ack = whatsAppClient.sendTemplate(new WhatsAppSend(lead.getId(), request.templateCode(), language));
-        auditSend(actor, lead.getId(), "WHATSAPP", request.templateCode(), ack.provider());
-        log.info("messaging stub channel=WHATSAPP leadId={} delivered={}", lead.getId(), ack.delivered());
+        auditSend(actor, lead.getId(), "WHATSAPP", request.templateCode(), ack);
+        log.info("messaging send channel=WHATSAPP leadId={} provider={} delivered={}",
+                lead.getId(), ack.provider(), ack.delivered());
         return sendResponse(ack, lead.getId(), "WHATSAPP", request.templateCode(), "WhatsApp 发送尚未开通");
     }
 
@@ -68,8 +69,9 @@ public class MessagingService {
         gate.requireSealed(lead.getId(), MessageChannel.EMAIL);
         rateLimiter.acquire(actor.id(), MessageChannel.EMAIL);
         ProviderAck ack = emailClient.sendTemplate(new EmailSend(lead.getId(), request.templateCode(), request.subject()));
-        auditSend(actor, lead.getId(), "EMAIL", request.templateCode(), ack.provider());
-        log.info("messaging stub channel=EMAIL leadId={} delivered={}", lead.getId(), ack.delivered());
+        auditSend(actor, lead.getId(), "EMAIL", request.templateCode(), ack);
+        log.info("messaging send channel=EMAIL leadId={} provider={} delivered={}",
+                lead.getId(), ack.provider(), ack.delivered());
         return sendResponse(ack, lead.getId(), "EMAIL", request.templateCode(), "邮件发送尚未开通");
     }
 
@@ -100,12 +102,15 @@ public class MessagingService {
         return value;
     }
 
-    private void auditSend(AuthUser actor, long leadId, String channel, String templateCode, String provider) {
+    private void auditSend(AuthUser actor, long leadId, String channel, String templateCode, ProviderAck ack) {
+        String outcome = ack.delivered()
+                ? ("mock".equals(ack.provider()) ? "mock" : "accepted")
+                : "stub";
         audit.record(actor, "MESSAGE_SEND", "LEAD", leadId, null, Map.of(
                 "channel", channel,
                 "templateCode", templateCode,
-                "provider", provider,
-                "outcome", "stub"));
+                "provider", ack.provider(),
+                "outcome", outcome));
     }
 
     private static SendStubResponse sendResponse(ProviderAck ack, long leadId, String channel, String templateCode, String pendingMessage) {
