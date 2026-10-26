@@ -79,6 +79,12 @@ class MessagingRulesTest {
         assertThat(messaging.resolvedWhatsappProvider()).isEqualTo("unconfigured");
         assertThat(messaging.resolvedEmailProvider()).isEqualTo("resend");
         assertThat(messaging.resolvedWhatsappProvider()).doesNotContain("super-secret");
+        messaging.setEmailProvider("mock");
+        messaging.setWhatsappProvider("Mock");
+        assertThat(messaging.resolvedEmailProvider()).isEqualTo("mock");
+        assertThat(messaging.resolvedWhatsappProvider()).isEqualTo("mock");
+        messaging.setEmailProvider("smtp");
+        assertThat(messaging.resolvedEmailProvider()).isEqualTo("smtp");
     }
 
     @Test

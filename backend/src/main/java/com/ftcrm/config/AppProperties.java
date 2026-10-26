@@ -97,6 +97,11 @@ public class AppProperties {
         private String watiApiBase = "";
         private String watiApiToken = "";
         private String resendApiKey = "";
+        private String emailFrom = "";
+        private String smtpHost = "";
+        private int smtpPort = 587;
+        private String smtpUsername = "";
+        private String smtpPassword = "";
         private String gmailClientId = "";
         private String gmailClientSecret = "";
         private String gmailRefreshToken = "";
@@ -173,6 +178,46 @@ public class AppProperties {
             this.resendApiKey = resendApiKey;
         }
 
+        public String getEmailFrom() {
+            return emailFrom;
+        }
+
+        public void setEmailFrom(String emailFrom) {
+            this.emailFrom = emailFrom;
+        }
+
+        public String getSmtpHost() {
+            return smtpHost;
+        }
+
+        public void setSmtpHost(String smtpHost) {
+            this.smtpHost = smtpHost;
+        }
+
+        public int getSmtpPort() {
+            return smtpPort;
+        }
+
+        public void setSmtpPort(int smtpPort) {
+            this.smtpPort = smtpPort;
+        }
+
+        public String getSmtpUsername() {
+            return smtpUsername;
+        }
+
+        public void setSmtpUsername(String smtpUsername) {
+            this.smtpUsername = smtpUsername;
+        }
+
+        public String getSmtpPassword() {
+            return smtpPassword;
+        }
+
+        public void setSmtpPassword(String smtpPassword) {
+            this.smtpPassword = smtpPassword;
+        }
+
         public String getGmailClientId() {
             return gmailClientId;
         }
@@ -198,11 +243,35 @@ public class AppProperties {
         }
 
         public String resolvedWhatsappProvider() {
-            return allow(whatsappProvider, "360dialog", "wati");
+            return allow(whatsappProvider, "mock", "360dialog", "wati");
         }
 
         public String resolvedEmailProvider() {
-            return allow(emailProvider, "gmail", "resend");
+            return allow(emailProvider, "mock", "gmail", "resend", "smtp");
+        }
+
+        public boolean hasText(String value) {
+            return value != null && !value.isBlank();
+        }
+
+        public boolean resendConfigured() {
+            return hasText(resendApiKey) && hasText(emailFrom);
+        }
+
+        public boolean smtpConfigured() {
+            return hasText(smtpHost) && hasText(smtpUsername) && hasText(smtpPassword) && hasText(emailFrom);
+        }
+
+        public boolean gmailConfigured() {
+            return hasText(gmailClientId) && hasText(gmailClientSecret) && hasText(gmailRefreshToken) && hasText(emailFrom);
+        }
+
+        public boolean watiConfigured() {
+            return hasText(watiApiBase) && hasText(watiApiToken);
+        }
+
+        public boolean whatsappHttpConfigured() {
+            return hasText(whatsappApiBase) && hasText(whatsappApiKey);
         }
 
         private static String allow(String raw, String... names) {

@@ -44,7 +44,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.datasource.url=jdbc:h2:mem:ftcrmmessaging;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE",
         "ftcrm.messaging.whatsapp-provider=super-secret-wa-key",
         "ftcrm.messaging.whatsapp-api-key=super-secret-wa-api-key",
-        "ftcrm.messaging.email-provider=resend",
+        "ftcrm.messaging.email-provider=unconfigured",
         "ftcrm.messaging.resend-api-key=super-secret-resend-key",
         "ftcrm.messaging.gmail-client-secret=super-secret-gmail",
         "ftcrm.messaging.wati-api-token=super-secret-wati"
@@ -119,7 +119,7 @@ class MessagingSkeletonTest {
                                     """.formatted(id)))
                     .andExpect(status().isNotImplemented())
                     .andExpect(jsonPath("$.channel").value("EMAIL"))
-                    .andExpect(jsonPath("$.provider").value("resend"))
+                    .andExpect(jsonPath("$.provider").value("unconfigured"))
                     .andExpect(jsonPath("$.delivered").value(false))
                     .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
         } finally {
